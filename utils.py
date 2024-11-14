@@ -1,4 +1,5 @@
-from sqlalchemy import select, date
+from sqlalchemy import select
+from datetime import date
 from models import Asset, AssetData
 from config import Session
 

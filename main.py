@@ -258,6 +258,7 @@ async def main():
         if stock_market_open:
             for ind in stock_man.index_list:
                 tg.create_task(stock_man.get_index_data(ind))
+                await asyncio.sleep(0.5)
 
     for data in crypto_data.values():
         await save_data_to_postgres(

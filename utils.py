@@ -94,7 +94,8 @@ async def save_data_to_postgres(
                 asset_ticker=ticker
             )
             session.add(asset)
-            await session.commit()
+            await session.flush()
+            await session.refresh(asset)
 
         new_data = AssetData(
             asset=asset,

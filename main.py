@@ -174,7 +174,7 @@ async def compare_date_data(ticker: str, date1: str, date2: str, session: AsyncS
 
 
     if not earlier_asset_data and not later_asset_data:
-        asset = await session.execute(select(Asset).filter_by(asset_ticker=ticker))
+        asset = await session.scalar(select(Asset).filter_by(asset_ticker=ticker))
 
         if not asset:
             raise HTTPException(status_code=404, detail=f"{ticker} not found in database")

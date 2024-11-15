@@ -7,10 +7,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from utils import up_down_icon, default_msg, htf_msg, format_coingecko_ids, format_dollars, save_data_to_postgres
-from config import Settings, async_session
+from config import Settings, async_session, AsyncSessionDepends
 from models import Asset, AssetData, User, DBTestFunctions
 from validators import UserData
 from crypto_data import CryptoManager
@@ -43,7 +42,7 @@ async def home(request: Request):
 
 
 @app.post("/signup")
-async def sign_up(user: UserData = Form(...), session: AsyncSession = Depends(async_session)):
+async def sign_up(session: AsyncSessionDepends, user: UserData = Form(...)):
     """Saves user info to the database for notification purposes"""
 
     user = User(
@@ -55,23 +54,21 @@ async def sign_up(user: UserData = Form(...), session: AsyncSession = Depends(as
 
 
 @app.post("/unsubscribe")
-async def unsubscribe_email(email: str = Form(...), session: AsyncSession = Depends(async_session)):
-    if not email:
-        raise HTTPException(status_code=400, detail="Email is required.")
+async def unsubscribe_email(session: AsyncSessionDepends, user: UserData = Form(...)):
 
-    user_result = await session.execute(select(User).filter_by(email=email))
-    user = user_result.scalars().first()
+    user_result = await session.execute(select(User).filter_by(email=user.email))
+    existing_user = user_result.scalars().first()
 
-    if not user:
-        raise HTTPException(status_code=400, detail=f"'{email}' is not registered in our database.")
+    if not existing_user:
+        raise HTTPException(status_code=400, detail=f"'{user.email}' is not registered in our database.")
 
     user.unsubscribe = True
     await session.commit()
-    return {"message": f"'{email}' has been unsubscribed"}
+    return {"message": f"'{existing_user.email}' has been unsubscribed"}
 
 
 @app.get("/data/{ticker}/{date}")
-async def get_data_on_date(ticker: str, date: str, session: AsyncSession = Depends(async_session)):
+async def get_data_on_date(ticker: str, date: str, session: AsyncSessionDepends):
     """Returns daily candle close data for a specified ticker and date"""
 
     # Date is saved as a Date object in the db so need to convert from str
@@ -111,7 +108,7 @@ async def get_data_on_date(ticker: str, date: str, session: AsyncSession = Depen
 
 
 @app.get("/alldata/{date}")
-async def get_all_data_on_date(date: str, session: AsyncSession = Depends(async_session)):
+async def get_all_data_on_date(date: str, session: AsyncSessionDepends):
     """Returns daily candle close data for all available assets on the specified date"""
 
     try:

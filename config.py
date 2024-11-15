@@ -1,3 +1,5 @@
+from fastapi import Depends
+from typing import Annotated
 from contextlib import asynccontextmanager
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -24,7 +26,9 @@ engine = create_async_engine(DATABASE_URL, echo=False)
 Session = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
-@asynccontextmanager
 async def async_session():
     async with Session() as session:
         yield session
+
+
+AsyncSessionDepends = Annotated[AsyncSession, Depends(async_session)]

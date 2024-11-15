@@ -65,4 +65,3 @@ class UserData(BaseModel):
         if value is None or value == '':
             raise ValueError('Email is required')
         return value
-    

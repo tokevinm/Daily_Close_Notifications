@@ -56,5 +56,13 @@ class GoogleDriveData(BaseModel):
     data: list[dict]
 
 
-class UserSignup(BaseModel):
+class UserData(BaseModel):
     email: EmailStr
+
+    @classmethod
+    @field_validator('email', mode="before")
+    def validate_email(cls, value):
+        if value is None or value == '':
+            raise ValueError('Email is required')
+        return value
+    

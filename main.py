@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from utils import up_down_icon, default_msg, htf_msg, format_coingecko_ids, format_dollars, save_data_to_postgres
 from config import Settings, async_session
 from models import Asset, AssetData, User, DBTestFunctions
-from validators import UserSignup
+from validators import UserData
 from crypto_data import CryptoManager
 from email_notifier import EmailNotifier
 from stock_data import StockManager
@@ -43,26 +43,15 @@ async def home(request: Request):
 
 
 @app.post("/signup")
-async def sign_up(email: str = Form(...), session: AsyncSession = Depends(async_session)):
+async def sign_up(user: UserData = Form(...), session: AsyncSession = Depends(async_session)):
     """Saves user info to the database for notification purposes"""
-
-    if not email:
-        raise HTTPException(status_code=400, detail="Email is required.")
-
-    try:
-        user = UserSignup(email=email)
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=400,
-            detail={"message": f"Submitted email, '{email}' not valid", "error": f"{e}"}
-        )
 
     user = User(
         email=user.email
     )
     session.add(user)
     await session.commit()
-    return {"message": f"'{email}' has been signed up for Daily Close Notifications"}
+    return {"message": f"'{user.email}' has been signed up for Daily Close Notifications"}
 
 
 @app.post("/unsubscribe")

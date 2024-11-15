@@ -1,4 +1,5 @@
-from sqlalchemy import select, date
+from sqlalchemy import select
+from datetime import date
 from models import Asset, AssetData
 from config import Session
 
@@ -85,15 +86,15 @@ async def save_data_to_postgres(
     """Checks for existence of asset in Postgres database, adds it if nonexistent, and updates associated data"""
 
     async with Session() as session:
-        asset_result = await session.execute(select(Asset).filter_by(asset_name=name))
-        asset = asset_result.scalars().first()
+        asset = await session.scalar(select(Asset).filter_by(asset_name=name))
         if not asset:
             asset = Asset(
                 asset_name=name,
                 asset_ticker=ticker
             )
             session.add(asset)
-            await session.commit()
+            await session.flush()
+            await session.refresh(asset)
 
         new_data = AssetData(
             asset=asset,

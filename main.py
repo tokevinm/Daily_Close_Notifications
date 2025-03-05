@@ -95,12 +95,12 @@ async def get_data_on_date(ticker: str, date: str, session: AsyncSessionDepends)
         raise HTTPException(status_code=404, detail=f"No data recorded for {ticker} on {date}")
 
     data_to_return = {
-        "date": asset_data.date,
-        "name": asset_data.asset.asset_name,
-        "ticker": asset_data.asset.asset_ticker,
-        "price": asset_data.close_price,
-        "volume": asset_data.volume_USD,
-        "market_cap": asset_data.market_cap
+        "date": asset_data.date | "",
+        "name": asset_data.asset.asset_name | "",
+        "ticker": asset_data.asset.asset_ticker | "",
+        "price": asset_data.close_price | "",
+        "volume": asset_data.volume_USD | "",
+        "market_cap": asset_data.market_cap | ""
     }
     # FastAPI automatically serializes Date object into a string (Pydantic)
     return data_to_return
@@ -159,7 +159,6 @@ async def compare_date_data(ticker: str, date1: str, date2: str, session: AsyncS
     else:
         raise HTTPException(status_code=400, detail="Dates must be different")
 
-    
     result = await session.execute(select(AssetData).join(AssetData.asset).options(joinedload(AssetData.asset)).filter(
         Asset.asset_ticker == ticker,
         or_(
@@ -172,7 +171,7 @@ async def compare_date_data(ticker: str, date1: str, date2: str, session: AsyncS
     earlier_asset_data = next((data for data in both_asset_data if data.date == earlier_date), None)
     later_asset_data = next((data for data in both_asset_data if data.date == later_date), None)
 
-
+    # If neither date exists in the db, checks for existence of ticker/asset in db
     if not earlier_asset_data and not later_asset_data:
         asset = await session.scalar(select(Asset).filter_by(asset_ticker=ticker))
 
@@ -191,12 +190,12 @@ async def compare_date_data(ticker: str, date1: str, date2: str, session: AsyncS
     change_in_percent = (change_in_price / earlier_asset_data.close_price) * 100
 
     data_to_return = {
-        "name": earlier_asset_data.asset.asset_name,
-        "ticker": earlier_asset_data.asset.asset_ticker,
+        "name": earlier_asset_data.asset.asset_name | "",
+        "ticker": earlier_asset_data.asset.asset_ticker | "",
         "earlier_date": earlier_date,
         "later_date": later_date,
-        "change_in_price": change_in_price,
-        "percentage_change": change_in_percent
+        "change_in_price": change_in_price | "",
+        "percentage_change": change_in_percent | None
     }
 
     return data_to_return

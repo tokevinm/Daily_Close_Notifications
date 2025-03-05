@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
 from models import Asset, AssetData
 from config import Session
@@ -33,6 +34,8 @@ def htf_msg(timeframe: str, percent_change: float) -> str:
 def format_coingecko_ids(options_string: str | None) -> list[str]:
     """Receives a JSON formatted string of user chosen cryptocurrencies
     and formats into a list that is compatible with the Coingecko API asset IDs"""
+    if options_string is None:
+        return []
     options = options_string.split()
     if "Toncoin" in options:
         index = options.index("Toncoin")
@@ -61,7 +64,7 @@ def format_coingecko_ids(options_string: str | None) -> list[str]:
 def format_dollars(price: float | int) -> str:
     """Formats a float/integer input into a dollar amount with punctuation"""
     if price < 0:
-        return f"-${price:,.2f}"
+        return f"-${abs(price):,.2f}"
     elif price >= 1:
         return f"${price:,.2f}"
     elif price >= 0.01:
@@ -72,36 +75,37 @@ def format_dollars(price: float | int) -> str:
 
 def format_percent(percent: float | int) -> str:
     """Formats a float/integer input as a percentage into a string with punctuation, rounded to two decimal places"""
-    return f"{round(percent, 2)}%"
+    return f"{percent:,.2f}%"
 
 
 async def save_data_to_postgres(
-        name: str, 
-        ticker: str, 
-        price: float | int, 
-        mcap: float | int, 
-        volume: int, 
-        date: date = None
-        ) -> None:
-    """Checks for existence of asset in Postgres database, adds it if nonexistent, and updates associated data"""
+        name: str,
+        ticker: str,
+        price: float | int,
+        mcap: float | int,
+        volume: int,
+        date: date = None,
+        session: AsyncSession = None
+) -> None:
+    """Checks for existence of asset in Postgres database (adds it if nonexistent) and updates associated data"""
 
-    async with Session() as session:
-        asset = await session.scalar(select(Asset).filter_by(asset_name=name))
-        if not asset:
-            asset = Asset(
-                asset_name=name,
-                asset_ticker=ticker
-            )
-            session.add(asset)
-            await session.flush()
-            await session.refresh(asset)
-
-        new_data = AssetData(
-            asset=asset,
-            date=date,
-            close_price=price,
-            market_cap=mcap,
-            volume_USD=volume
+    # Use the provided session directly
+    asset = await session.scalar(select(Asset).filter_by(asset_name=name))
+    if not asset:
+        asset = Asset(
+            asset_name=name,
+            asset_ticker=ticker
         )
-        session.add(new_data)
-        await session.commit()
+        session.add(asset)
+        await session.flush()
+        await session.refresh(asset)
+
+    new_data = AssetData(
+        asset=asset,
+        date=date,
+        close_price=price,
+        market_cap=mcap,
+        volume_USD=volume
+    )
+    session.add(new_data)
+    await session.commit()

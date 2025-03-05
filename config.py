@@ -2,10 +2,13 @@ from fastapi import Depends
 from typing import Annotated
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+import os
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='forbid')
+    model_config = SettingsConfigDict(env_file=os.path.join(os.path.dirname(__file__), '.env'),
+                                      env_file_encoding='utf-8',
+                                      extra='forbid')
     postgres_url: str
     sheety_bearer: str
     sheety_users_endpoint: str
